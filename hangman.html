@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hangman</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0e13;--panel:#12151d;--line:#232837;--ink:#e8e4d8;--dim:#6b7183;--x:#f4b942;--o:#5fd4c4}
+*{box-sizing:border-box;margin:0}
+body{min-height:100vh;background:var(--bg);color:var(--ink);font-family:'IBM Plex Mono',monospace;display:flex;flex-direction:column;align-items:center;padding:24px;
+background-image:radial-gradient(600px 400px at 15% 10%,rgba(244,185,66,.07),transparent),radial-gradient(600px 400px at 85% 90%,rgba(95,212,196,.07),transparent)}
+.back{align-self:flex-start;color:var(--dim);text-decoration:none;font-size:12px;text-transform:uppercase;letter-spacing:.12em}
+h1{font-family:'Fraunces',serif;font-weight:300;font-size:clamp(28px,6vw,44px);margin:14px 0 18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.5);padding:24px;max-width:460px;width:100%;text-align:center}
+#status{font-size:12px;text-transform:uppercase;letter-spacing:.15em;color:var(--dim);min-height:1.4em;margin:10px 0}
+#word{font-size:clamp(22px,6vw,32px);letter-spacing:.35em;margin:14px 0;word-break:break-all}
+#kb{display:grid;grid-template-columns:repeat(9,1fr);gap:6px;margin-top:14px}
+#kb button{border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--ink);font-family:inherit;font-size:12px;text-transform:uppercase;padding:8px 0;cursor:pointer}
+#kb button:disabled{opacity:.3;cursor:default}
+#kb button.hit{border-color:var(--o);color:var(--o)}
+#kb button.miss{border-color:var(--x);color:var(--dim)}
+#again{margin-top:16px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--ink);font-family:inherit;font-size:12px;text-transform:uppercase;letter-spacing:.12em;padding:9px 22px;cursor:pointer}
+svg .part{stroke:var(--x);stroke-width:3;stroke-linecap:round;fill:none;visibility:hidden}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">&larr; Arcade</a>
+<h1>Hangman</h1>
+<div class="card">
+  <svg viewBox="0 0 200 180" width="180" height="162" aria-hidden="true">
+    <path d="M20 170 H120 M50 170 V20 H130 V40" stroke="var(--line)" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <circle class="part" cx="130" cy="55" r="15"/>
+    <line class="part" x1="130" y1="70" x2="130" y2="115"/>
+    <line class="part" x1="130" y1="82" x2="108" y2="100"/>
+    <line class="part" x1="130" y1="82" x2="152" y2="100"/>
+    <line class="part" x1="130" y1="115" x2="112" y2="145"/>
+    <line class="part" x1="130" y1="115" x2="148" y2="145"/>
+  </svg>
+  <div id="word"></div>
+  <div id="status"></div>
+  <div id="kb"></div>
+  <button id="again">New word</button>
+</div>
+<script>
+const WORDS="apple,house,music,water,light,dream,beach,cloud,dance,eagle,flame,grape,heart,juice,knife,lemon,mango,night,ocean,piano,queen,river,storm,tiger,uncle,voice,whale,youth,zebra,bread,chair,earth,fruit,ghost,honey,image,jelly,koala,lunar,money,north,onion,plant,quick,radio,smile,table,unity,vivid,windy".split(",");
+const wordEl=document.getElementById("word"),statusEl=document.getElementById("status"),kb=document.getElementById("kb"),parts=document.querySelectorAll(".part");
+let word,guessed,wrong,over;
+function start(){
+  word=WORDS[Math.floor(Math.random()*WORDS.length)];
+  guessed=new Set();wrong=0;over=false;
+  parts.forEach(p=>p.style.visibility="hidden");
+  kb.innerHTML="";
+  for(const c of "abcdefghijklmnopqrstuvwxyz"){
+    const b=document.createElement("button");
+    b.textContent=c;b.onclick=()=>guess(c,b);kb.appendChild(b);
+  }
+  statusEl.textContent="6 misses allowed";
+  render();
+}
+function render(){
+  wordEl.textContent=[...word].map(c=>guessed.has(c)?c:"_").join(" ");
+}
+function guess(c,b){
+  if(over||guessed.has(c))return;
+  guessed.add(c);b.disabled=true;
+  if(word.includes(c)){
+    b.classList.add("hit");render();
+    if([...word].every(ch=>guessed.has(ch))){over=true;statusEl.textContent="You win";}
+  }else{
+    b.classList.add("miss");
+    parts[wrong].style.visibility="visible";wrong++;
+    statusEl.textContent=(6-wrong)+" misses left";
+    if(wrong>=6){over=true;statusEl.textContent="You lose — "+word;wordEl.textContent=[...word].join(" ");}
+  }
+}
+document.getElementById("again").onclick=start;
+addEventListener("keydown",e=>{
+  const c=e.key.toLowerCase();
+  if(c.length===1&&c>="a"&&c<="z"){const b=[...kb.children]["abcdefghijklmnopqrstuvwxyz".indexOf(c)];if(b&&!b.disabled)guess(c,b);}
+});
+start();
+</script>
+</body>
+</html>

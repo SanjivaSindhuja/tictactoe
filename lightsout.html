@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lights Out</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0e13;--panel:#12151d;--line:#232837;--ink:#e8e4d8;--dim:#6b7183;--x:#f4b942;--o:#5fd4c4}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;background:var(--bg);color:var(--ink);
+  background-image:radial-gradient(600px 400px at 15% 10%,rgba(244,185,66,.07),transparent),
+    radial-gradient(600px 400px at 85% 90%,rgba(95,212,196,.07),transparent);
+  font-family:'IBM Plex Mono',monospace;
+  display:flex;flex-direction:column;align-items:center;padding:24px;
+}
+.back{position:absolute;top:20px;left:24px;color:var(--dim);text-decoration:none;font-size:12px;text-transform:uppercase;letter-spacing:.12em}
+.back:hover{color:var(--ink)}
+h1{font-family:'Fraunces',serif;font-weight:300;font-size:42px;margin:48px 0 8px}
+.status{font-size:12px;text-transform:uppercase;letter-spacing:.18em;color:var(--dim);margin-bottom:20px}
+.status b{color:var(--x);font-weight:500}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:28px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.board{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.cell{width:min(15vw,60px);height:min(15vw,60px);border-radius:12px;border:1px solid var(--line);background:#0a0c11;cursor:pointer;transition:background .15s,box-shadow .15s;padding:0}
+.cell.on{background:var(--x);box-shadow:0 0 22px rgba(244,185,66,.55);border-color:var(--x)}
+.bar{display:flex;justify-content:center;margin-top:22px}
+button.pill{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:9px 22px;font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:.14em;cursor:pointer}
+button.pill:hover{border-color:var(--dim)}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">&larr; Arcade</a>
+<h1>Lights Out</h1>
+<div class="status" id="status">Moves <b id="moves">0</b></div>
+<div class="card">
+  <div class="board" id="board"></div>
+  <div class="bar"><button class="pill" id="reset">New puzzle</button></div>
+</div>
+<script>
+const N=5;
+const board=document.getElementById('board');
+const movesEl=document.getElementById('moves');
+const statusEl=document.getElementById('status');
+let grid,moves,solved;
+const cells=[];
+for(let i=0;i<N*N;i++){
+  const b=document.createElement('button');b.className='cell';
+  b.addEventListener('click',()=>{if(!solved){press(i);moves++;render();check();}});
+  board.appendChild(b);cells.push(b);
+}
+function press(i){
+  const r=Math.floor(i/N),c=i%N;
+  [[0,0],[1,0],[-1,0],[0,1],[0,-1]].forEach(([dr,dc])=>{
+    const nr=r+dr,nc=c+dc;
+    if(nr>=0&&nr<N&&nc>=0&&nc<N)grid[nr*N+nc]^=1;
+  });
+}
+function render(){
+  cells.forEach((b,i)=>b.classList.toggle('on',!!grid[i]));
+  movesEl.textContent=moves;
+}
+function check(){
+  if(grid.every(v=>!v)){
+    solved=true;
+    statusEl.firstChild.textContent='Solved in ';
+    statusEl.append(' moves!');
+  }
+}
+function newGame(){
+  grid=Array(N*N).fill(0);moves=0;solved=false;
+  // guaranteed solvable: start from all-off, apply random simulated presses
+  let lit=false;
+  while(!lit){
+    for(let k=0;k<12;k++)press(Math.floor(Math.random()*N*N));
+    lit=grid.some(v=>v);
+  }
+  statusEl.innerHTML='';
+  statusEl.append('Moves ',movesEl);
+  render();
+}
+document.getElementById('reset').addEventListener('click',newGame);
+newGame();
+</script>
+</body>
+</html>

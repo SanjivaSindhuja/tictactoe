@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rock Paper Scissors</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0e13;--panel:#12151d;--line:#232837;--ink:#e8e4d8;--dim:#6b7183;--x:#f4b942;--o:#5fd4c4}
+*{box-sizing:border-box;margin:0}
+body{min-height:100vh;background:var(--bg);color:var(--ink);font-family:'IBM Plex Mono',monospace;display:flex;flex-direction:column;align-items:center;padding:20px;
+background-image:radial-gradient(600px 400px at 15% 10%,rgba(244,185,66,.07),transparent),radial-gradient(600px 400px at 85% 90%,rgba(95,212,196,.07),transparent)}
+.back{align-self:flex-start;color:var(--dim);text-decoration:none;font-size:12px;text-transform:uppercase;letter-spacing:.12em}
+h1{font-family:'Fraunces',serif;font-weight:300;font-size:clamp(26px,6vw,44px);margin:12px 0 14px;text-align:center}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.5);padding:24px;max-width:440px;width:100%;text-align:center}
+#score{font-size:12px;text-transform:uppercase;letter-spacing:.15em;margin-bottom:6px}
+#score .you{color:var(--x)}#score .ai{color:var(--o)}
+#status{font-size:12px;text-transform:uppercase;letter-spacing:.15em;color:var(--dim);min-height:1.4em;margin-bottom:14px}
+#arena{display:flex;justify-content:center;gap:28px;font-size:clamp(48px,14vw,72px);min-height:1.3em;margin-bottom:18px}
+#arena span{transition:transform .25s}
+#arena.shake span{animation:shake .5s}
+@keyframes shake{0%,100%{transform:translateY(0)}25%{transform:translateY(-14px)}50%{transform:translateY(0)}75%{transform:translateY(-8px)}}
+#hands{display:flex;justify-content:center;gap:14px}
+#hands button{border:1px solid var(--line);border-radius:999px;background:transparent;font-size:clamp(32px,9vw,44px);padding:12px 20px;cursor:pointer;transition:border-color .15s}
+#hands button:hover{border-color:var(--x)}
+#again{margin-top:18px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--ink);font-family:inherit;font-size:12px;text-transform:uppercase;letter-spacing:.12em;padding:9px 22px;cursor:pointer;display:none}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">&larr; Arcade</a>
+<h1>Rock Paper Scissors</h1>
+<div class="card">
+  <div id="score"><span class="you">You 0</span> &middot; <span class="ai">AI 0</span></div>
+  <div id="status">First to 10 — pick a hand</div>
+  <div id="arena"><span id="pHand">🫲</span><span id="aHand">🫱</span></div>
+  <div id="hands">
+    <button data-m="0" aria-label="Rock">🪨</button>
+    <button data-m="1" aria-label="Paper">📄</button>
+    <button data-m="2" aria-label="Scissors">✂️</button>
+  </div>
+  <button id="again">Play again</button>
+</div>
+<script>
+const EMOJI=["🪨","📄","✂️"],NAMES=["Rock","Paper","Scissors"];
+const scoreEl=document.getElementById("score"),statusEl=document.getElementById("status"),
+arena=document.getElementById("arena"),pHand=document.getElementById("pHand"),aHand=document.getElementById("aHand"),
+hands=document.getElementById("hands"),again=document.getElementById("again");
+let you=0,ai=0,busy=false,over=false;
+hands.onclick=e=>{
+  const b=e.target.closest("button");if(!b||busy||over)return;
+  const p=+b.dataset.m,a=Math.floor(Math.random()*3);
+  busy=true;pHand.textContent="🫲";aHand.textContent="🫱";
+  arena.classList.add("shake");statusEl.textContent="…";
+  setTimeout(()=>{
+    arena.classList.remove("shake");
+    pHand.textContent=EMOJI[p];aHand.textContent=EMOJI[a];
+    if(p===a)statusEl.textContent="Draw — "+NAMES[p]+" both";
+    else if((p-a+3)%3===1){you++;statusEl.textContent=NAMES[p]+" beats "+NAMES[a]+" — you score";}
+    else{ai++;statusEl.textContent=NAMES[a]+" beats "+NAMES[p]+" — AI scores";}
+    scoreEl.innerHTML='<span class="you">You '+you+'</span> &middot; <span class="ai">AI '+ai+'</span>';
+    if(you>=10||ai>=10){over=true;statusEl.textContent=you>=10?"You win the match":"AI wins the match";again.style.display="inline-block";}
+    busy=false;
+  },500);
+};
+again.onclick=()=>{
+  you=0;ai=0;over=false;again.style.display="none";
+  pHand.textContent="🫲";aHand.textContent="🫱";
+  scoreEl.innerHTML='<span class="you">You 0</span> &middot; <span class="ai">AI 0</span>';
+  statusEl.textContent="First to 10 — pick a hand";
+};
+</script>
+</body>
+</html>

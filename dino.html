@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Runner — Arcade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0e13;--panel:#12151d;--line:#232837;--ink:#e8e4d8;--dim:#6b7183;--x:#f4b942;--o:#5fd4c4}
+*{margin:0;box-sizing:border-box}
+body{
+  background:var(--bg) radial-gradient(600px 400px at 15% 10%,rgba(244,185,66,.07),transparent 70%),
+  radial-gradient(600px 400px at 85% 90%,rgba(95,212,196,.07),transparent 70%);
+  background-color:var(--bg);color:var(--ink);min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;padding:16px}
+.back{position:fixed;top:16px;left:20px;color:var(--dim);text-decoration:none;
+  font-size:12px;text-transform:uppercase;letter-spacing:.15em}
+.back:hover{color:var(--ink)}
+h1{font-family:'Fraunces',serif;font-weight:300;font-size:clamp(28px,5vw,42px);margin-bottom:8px}
+.status{font-size:12px;text-transform:uppercase;letter-spacing:.2em;color:var(--dim);margin-bottom:16px;min-height:1.2em}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;
+  padding:16px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+canvas{display:block;max-width:100%;height:auto;touch-action:none;border-radius:8px}
+button{margin-top:16px;background:transparent;color:var(--ink);border:1px solid var(--line);
+  border-radius:999px;padding:10px 24px;font-family:'IBM Plex Mono',monospace;font-size:12px;
+  text-transform:uppercase;letter-spacing:.15em;cursor:pointer}
+button:hover{border-color:var(--o)}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">&larr; Arcade</a>
+<h1>Runner</h1>
+<div class="status" id="status">Space or tap to jump</div>
+<div class="card"><canvas id="c" width="640" height="240"></canvas></div>
+<button id="btn">Restart</button>
+<script>
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const W=640,H=240,GROUND=H-40,DW=26,DH=34,GRAV=.62,JUMP=-11.5;
+let dino,obs,speed,score,hi,state,spawnGap; // ready|play|over
+hi=+localStorage.getItem('dino-hi')||0;
+const el=document.getElementById('status');
+
+function reset(){
+  dino={y:GROUND-DH,vy:0,onGround:true};
+  obs=[];speed=5;score=0;state='ready';spawnGap=0;
+  el.textContent='Space or tap to jump · Hi '+hi;
+}
+function jump(){
+  if(state==='over'){reset();return;}
+  if(state==='ready')state='play';
+  if(dino.onGround){dino.vy=JUMP;dino.onGround=false;}
+}
+document.addEventListener('keydown',e=>{
+  if(e.code==='Space'||e.code==='ArrowUp'){e.preventDefault();jump();}
+});
+cv.addEventListener('pointerdown',e=>{e.preventDefault();jump();});
+document.getElementById('btn').onclick=reset;
+
+function update(){
+  if(state!=='play')return;
+  dino.vy+=GRAV;dino.y+=dino.vy;
+  if(dino.y>=GROUND-DH){dino.y=GROUND-DH;dino.vy=0;dino.onGround=true;}
+  // spawn
+  spawnGap--;
+  if(spawnGap<=0){
+    const h=20+Math.random()*26,w=14+Math.random()*16;
+    obs.push({x:W+20,w,h});
+    spawnGap=(60+Math.random()*70)*(5/speed)*(60/60); // shrinks as speed grows
+  }
+  const dx=60; // dino x
+  for(const o of obs){
+    o.x-=speed;
+    if(dx+DW>o.x+4&&dx<o.x+o.w-4&&dino.y+DH>GROUND-o.h+4){gameOver();return;}
+  }
+  obs=obs.filter(o=>o.x>-40);
+  score+=0.15;
+  speed=5+Math.min(6,score/120); // ramps up
+}
+function gameOver(){
+  state='over';
+  const s=Math.floor(score);
+  if(s>hi){hi=s;localStorage.setItem('dino-hi',hi);}
+  el.textContent='Game over · Score '+s+' · Hi '+hi;
+}
+function draw(){
+  ctx.fillStyle='#0c0e13';ctx.fillRect(0,0,W,H);
+  // ground
+  ctx.strokeStyle='#232837';ctx.beginPath();
+  ctx.moveTo(0,GROUND+.5);ctx.lineTo(W,GROUND+.5);ctx.stroke();
+  // dino (amber block with eye)
+  ctx.fillStyle='#f4b942';ctx.fillRect(60,dino.y,DW,DH);
+  ctx.fillStyle='#0c0e13';ctx.fillRect(60+DW-8,dino.y+6,4,4);
+  // obstacles (teal)
+  ctx.fillStyle='#5fd4c4';
+  for(const o of obs)ctx.fillRect(o.x,GROUND-o.h,o.w,o.h);
+  // score
+  ctx.fillStyle='#6b7183';ctx.font='12px "IBM Plex Mono",monospace';ctx.textAlign='right';
+  ctx.fillText('HI '+hi+'  '+String(Math.floor(score)).padStart(5,'0'),W-16,26);
+  if(state==='ready'){
+    ctx.textAlign='center';ctx.fillText('SPACE / TAP TO START',W/2,H/2);
+  }
+  if(state==='over'){
+    ctx.fillStyle='rgba(12,14,19,.7)';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#e8e4d8';ctx.font='300 30px Fraunces,serif';ctx.textAlign='center';
+    ctx.fillText('Game over',W/2,H/2-6);
+    ctx.fillStyle='#6b7183';ctx.font='12px "IBM Plex Mono",monospace';
+    ctx.fillText('SPACE OR TAP TO RESTART',W/2,H/2+24);
+  }
+}
+function loop(){update();draw();requestAnimationFrame(loop);}
+reset();requestAnimationFrame(loop);
+</script>
+</body>
+</html>

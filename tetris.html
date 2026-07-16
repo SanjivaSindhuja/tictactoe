@@ -1,0 +1,95 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tetris — Midnight Arcade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0e13;--panel:#12151d;--line:#232837;--ink:#e8e4d8;--dim:#6b7183;--x:#f4b942;--o:#5fd4c4}
+*{box-sizing:border-box;margin:0}
+body{min-height:100vh;background:var(--bg);color:var(--ink);font-family:'IBM Plex Mono',monospace;display:flex;flex-direction:column;align-items:center;padding:16px;
+background-image:radial-gradient(600px 400px at 15% 0%,rgba(244,185,66,.06),transparent),radial-gradient(600px 400px at 85% 100%,rgba(95,212,196,.06),transparent)}
+a.back{align-self:flex-start;color:var(--dim);text-decoration:none;font-size:12px;text-transform:uppercase;letter-spacing:.12em}
+a.back:hover{color:var(--ink)}
+h1{font-family:'Fraunces',serif;font-weight:300;font-size:2.2rem;margin:8px 0 14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.5);padding:18px;display:flex;gap:18px;align-items:flex-start}
+canvas{display:block;background:#0a0c10;border:1px solid var(--line);border-radius:8px}
+.side{display:flex;flex-direction:column;gap:12px;min-width:110px}
+.label{font-size:11px;text-transform:uppercase;letter-spacing:.15em;color:var(--dim)}
+.val{font-size:1.4rem}
+button{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:.1em;cursor:pointer}
+button:hover{border-color:var(--o)}
+.pad{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px;width:100%;max-width:340px}
+.pad button{padding:12px 0}
+#over{color:var(--x);font-size:13px;text-transform:uppercase;letter-spacing:.1em;min-height:18px}
+@media(max-width:520px){.card{flex-direction:column;align-items:center}.side{flex-direction:row;flex-wrap:wrap;justify-content:center}}
+</style>
+<a class="back" href="index.html">← Arcade</a>
+<h1>Tetris</h1>
+<div class="card">
+  <canvas id="cv" width="200" height="400"></canvas>
+  <div class="side">
+    <div><div class="label">Score</div><div class="val" id="score">0</div></div>
+    <div><div class="label">Level</div><div class="val" id="level">1</div></div>
+    <div><div class="label">Lines</div><div class="val" id="lines">0</div></div>
+    <div id="over"></div>
+    <button id="restart">Restart</button>
+  </div>
+</div>
+<div class="pad">
+  <button data-k="left">◀</button>
+  <button data-k="rot">⟳</button>
+  <button data-k="right">▶</button>
+  <button data-k="down">▼</button>
+</div>
+<script>
+const cv=document.getElementById('cv'),cx=cv.getContext('2d'),S=20,W=10,H=20;
+// amber / teal / ink shade variants
+const COLORS=['#f4b942','#c99a35','#5fd4c4','#4aa89b','#e8e4d8','#b9b5aa','#8a6f2a'];
+const SHAPES=[
+ [[1,1,1,1]],            // I
+ [[1,1],[1,1]],          // O
+ [[0,1,0],[1,1,1]],      // T
+ [[0,1,1],[1,1,0]],      // S
+ [[1,1,0],[0,1,1]],      // Z
+ [[1,0,0],[1,1,1]],      // J
+ [[0,0,1],[1,1,1]]       // L
+];
+let grid,cur,score,lines,level,over,timer;
+function reset(){grid=Array.from({length:H},()=>Array(W).fill(0));score=0;lines=0;level=1;over=false;
+ document.getElementById('over').textContent='';spawn();loop();updUI();}
+function spawn(){const i=Math.floor(Math.random()*7);
+ cur={shape:SHAPES[i].map(r=>r.slice()),c:i+1,x:Math.floor(W/2)-1,y:0};
+ if(hit(cur.shape,cur.x,cur.y)){over=true;clearTimeout(timer);document.getElementById('over').textContent='Game over';}}
+function hit(sh,x,y){return sh.some((row,dy)=>row.some((v,dx)=>{
+ if(!v)return false;const nx=x+dx,ny=y+dy;
+ return nx<0||nx>=W||ny>=H||(ny>=0&&grid[ny][nx]);}));}
+function merge(){cur.shape.forEach((row,dy)=>row.forEach((v,dx)=>{if(v&&cur.y+dy>=0)grid[cur.y+dy][cur.x+dx]=cur.c;}));
+ let cleared=0;
+ for(let y=H-1;y>=0;y--)if(grid[y].every(v=>v)){grid.splice(y,1);grid.unshift(Array(W).fill(0));cleared++;y++;}
+ if(cleared){lines+=cleared;score+=[0,100,300,500,800][cleared]*level;level=1+Math.floor(lines/10);}
+ updUI();spawn();}
+function move(dx){if(over)return;if(!hit(cur.shape,cur.x+dx,cur.y))cur.x+=dx;draw();}
+function rotate(){if(over)return;const r=cur.shape[0].map((_,i)=>cur.shape.map(row=>row[i]).reverse());
+ for(const k of [0,-1,1,-2,2])if(!hit(r,cur.x+k,cur.y)){cur.shape=r;cur.x+=k;break;}draw();}
+function drop(){if(over)return;if(!hit(cur.shape,cur.x,cur.y+1))cur.y++;else merge();draw();}
+function loop(){clearTimeout(timer);if(over)return;drop();timer=setTimeout(loop,Math.max(80,600-(level-1)*60));}
+function updUI(){score+=0;document.getElementById('score').textContent=score;
+ document.getElementById('level').textContent=level;document.getElementById('lines').textContent=lines;}
+function draw(){cx.fillStyle='#0a0c10';cx.fillRect(0,0,cv.width,cv.height);
+ const cell=(x,y,c)=>{cx.fillStyle=COLORS[c-1];cx.fillRect(x*S+1,y*S+1,S-2,S-2);};
+ grid.forEach((row,y)=>row.forEach((v,x)=>{if(v)cell(x,y,v);}));
+ if(!over)cur.shape.forEach((row,dy)=>row.forEach((v,dx)=>{if(v&&cur.y+dy>=0)cell(cur.x+dx,cur.y+dy,cur.c);}));
+ requestAnimationFrame(()=>{});}
+setInterval(draw,50);
+document.addEventListener('keydown',e=>{
+ if(e.key==='ArrowLeft')move(-1);
+ else if(e.key==='ArrowRight')move(1);
+ else if(e.key==='ArrowUp')rotate();
+ else if(e.key==='ArrowDown'){drop();e.preventDefault();}
+ if(e.key.startsWith('Arrow'))e.preventDefault();});
+document.querySelectorAll('.pad button').forEach(b=>b.addEventListener('click',()=>{
+ const k=b.dataset.k;if(k==='left')move(-1);else if(k==='right')move(1);else if(k==='rot')rotate();else drop();}));
+document.getElementById('restart').addEventListener('click',reset);
+reset();
+</script>

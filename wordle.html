@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wordle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0e13;--panel:#12151d;--line:#232837;--ink:#e8e4d8;--dim:#6b7183;--x:#f4b942;--o:#5fd4c4}
+*{box-sizing:border-box;margin:0}
+body{min-height:100vh;background:var(--bg);color:var(--ink);font-family:'IBM Plex Mono',monospace;display:flex;flex-direction:column;align-items:center;padding:20px;
+background-image:radial-gradient(600px 400px at 15% 10%,rgba(244,185,66,.07),transparent),radial-gradient(600px 400px at 85% 90%,rgba(95,212,196,.07),transparent)}
+.back{align-self:flex-start;color:var(--dim);text-decoration:none;font-size:12px;text-transform:uppercase;letter-spacing:.12em}
+h1{font-family:'Fraunces',serif;font-weight:300;font-size:clamp(28px,6vw,44px);margin:10px 0 14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.5);padding:20px;max-width:420px;width:100%;text-align:center}
+#status{font-size:12px;text-transform:uppercase;letter-spacing:.15em;color:var(--dim);min-height:1.4em;margin-bottom:12px}
+#board{display:grid;grid-template-rows:repeat(6,1fr);gap:6px;justify-content:center;margin-bottom:16px}
+.row{display:grid;grid-template-columns:repeat(5,48px);gap:6px}
+.tile{height:48px;border:1px solid var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;text-transform:uppercase;transition:transform .25s,background .25s,border-color .25s}
+.tile.flip{transform:rotateX(90deg)}
+.tile.correct{background:rgba(95,212,196,.25);border-color:var(--o);color:var(--o)}
+.tile.present{background:rgba(244,185,66,.22);border-color:var(--x);color:var(--x)}
+.tile.absent{border-color:var(--line);color:var(--dim)}
+#kb{display:flex;flex-direction:column;gap:6px}
+.krow{display:flex;justify-content:center;gap:5px}
+.krow button{border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--ink);font-family:inherit;font-size:12px;text-transform:uppercase;padding:10px 0;flex:1;max-width:36px;cursor:pointer}
+.krow button.wide{max-width:64px;letter-spacing:0}
+.krow button.correct{border-color:var(--o);color:var(--o)}
+.krow button.present{border-color:var(--x);color:var(--x)}
+.krow button.absent{color:var(--dim);opacity:.45}
+#again{margin-top:14px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--ink);font-family:inherit;font-size:12px;text-transform:uppercase;letter-spacing:.12em;padding:9px 22px;cursor:pointer}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">&larr; Arcade</a>
+<h1>Wordle</h1>
+<div class="card">
+  <div id="status">Guess the word</div>
+  <div id="board"></div>
+  <div id="kb"></div>
+  <button id="again">New game</button>
+</div>
+<script>
+const ANSWERS="about,above,actor,adult,after,again,agent,agree,alarm,album,alert,alike,alive,allow,alone,along,amber,angel,anger,angle,apple,apply,arena,argue,arise,armor,aroma,array,aside,asset,avoid,awake,award,aware,badge,baker,basic,beach,began,begin,being,below,bench,berry,birth,black,blade,blame,blank,blast,blaze,blend,bless,blind,block,bloom,board,bonus,boost,brain,brand,brave,bread,break,brick,bride,brief,bring,broad,brown,brush,build,burst,cabin,cable,candy,cargo,carry,catch,cause,chain,chair,chalk,charm,chart,chase,cheap,check,cheer,chess,chest,chief,child,choir,civic,claim,class,clean,clear,climb,clock,close,cloud,coach,coast,color,couch,could,count,court,cover,crane,crash,cream,crisp,crowd,crown,curve,cycle,daily,dance,dealt,debut,delta,dense,depth,diary,dozen,draft,drama,dream,dress,drink,drive,eager,eagle,early,earth,eight,elbow,elder,empty,enjoy,enter,equal,error,event,every,exact,exist,extra,fable,faith,fancy,fault,favor,feast,fever,field,fifty,fight,final,first,flame,flash,fleet,float,floor,flour,fluid,focus,force,forge,forth,found,frame,fresh,front,frost,fruit,giant,glass,globe,glory,grace,grade,grain,grand,grant,grape,grasp,grass,great,green,greet,group,guard,guest,guide,habit,happy,heart,heavy,hello,horse,hotel,house,human,ideal,image,index,inner,input,irony,ivory,jelly,joint,judge,juice,koala,label,labor,large,laser,later,laugh,layer,learn,lemon,level,light,limit,liver,local,logic,loyal,lucky,lunar,lunch,magic,major,mango,maple,march,match,mayor,medal,media,merge,merit,metal,meter,micro,might,minor,minus,model,money,month,moral,motor,mount,mouse,mouth,movie,music,naval,nerve,never,night,noble,noise,north,novel,nurse,ocean,offer,olive,onion,orbit,order,organ,other,ounce,outer,owner,paint,panel,paper,party,pasta,patch,pause,peace,pearl,penny,phase,phone,photo,piano,piece,pilot,pitch,pixel,place,plain,plane,plant,plate,plaza,point,polar,pound,power,press,price,pride,prime,print,prize,proof,proud,pulse,queen,quest,quick,quiet,quilt,radar,radio,raise,ranch,range,rapid,ratio,reach,ready,realm,rebel,relax,reply,rider,ridge,right,risky,rival,river,roast,robin,robot,rocky,round,route,royal,rural,salad,scale,scene,scope,score,sense,serve,seven,shade,shape,share,sharp,sheep,shelf,shell,shift,shine,shirt,shore,short,sight,silly,since,sixty,skill,slice,small,smart,smile,smoke,snack,solar,solid,solve,sound,south,space,spare,spark,speak,speed,spend,spice,spine,split,sport,squad,stack,staff,stage,stair,stand,start,state,steam,steel,stick,still,stock,stone,store,storm,story,stove,strap,straw,study,style,sugar,suite,sunny,super,surge,sweet,swift,table,taste,teach,thank,theme,there,thick,thing,think,third,three,throw,tiger,tight,title,toast,today,token,total,touch,tower,trace,track,trade,trail,train,treat,trend,trial,tribe,trick,truck,trust,truth,tulip,twist,ultra,uncle,under,union,unite,unity,upper,urban,usage,usual,valid,value,vapor,verse,video,vital,vivid,vocal,voice,waste,watch,water,weary,whale,wheat,wheel,where,which,while,white,whole,widow,width,windy,woman,world,worth,wound,write,wrong,yacht,yield,young,youth,zebra".split(",");
+const VALID=new Set(ANSWERS); // ponytail: no separate dictionary; any 5-letter guess accepted below
+const board=document.getElementById("board"),kb=document.getElementById("kb"),statusEl=document.getElementById("status");
+let answer,row,cur,over,tiles,keys={};
+function build(){
+  board.innerHTML="";tiles=[];
+  for(let r=0;r<6;r++){const d=document.createElement("div");d.className="row";const rt=[];
+    for(let c=0;c<5;c++){const t=document.createElement("div");t.className="tile";d.appendChild(t);rt.push(t);}
+    board.appendChild(d);tiles.push(rt);}
+  kb.innerHTML="";keys={};
+  ["qwertyuiop","asdfghjkl","Zzxcvbnm<"].forEach(rw=>{
+    const d=document.createElement("div");d.className="krow";
+    for(const ch of rw){
+      const b=document.createElement("button");
+      if(ch==="Z"){b.textContent="Enter";b.className="wide";b.onclick=()=>press("Enter");}
+      else if(ch==="<"){b.textContent="Del";b.className="wide";b.onclick=()=>press("Backspace");}
+      else{b.textContent=ch;b.onclick=()=>press(ch);keys[ch]=b;}
+      d.appendChild(b);
+    }
+    kb.appendChild(d);
+  });
+}
+function start(){
+  answer=ANSWERS[Math.floor(Math.random()*ANSWERS.length)];
+  row=0;cur="";over=false;build();
+  statusEl.textContent="Guess the word";
+}
+function press(k){
+  if(over)return;
+  if(k==="Enter"){submit();return;}
+  if(k==="Backspace"){cur=cur.slice(0,-1);}
+  else if(/^[a-z]$/.test(k)&&cur.length<5){cur+=k;}
+  tiles[row].forEach((t,i)=>t.textContent=cur[i]||"");
+}
+function submit(){
+  if(cur.length<5){statusEl.textContent="Not enough letters";return;}
+  // accept any 5-letter guess (fallback per spec) — VALID unused as gate
+  const g=cur, res=Array(5).fill("absent"), counts={};
+  for(let i=0;i<5;i++){if(g[i]===answer[i])res[i]="correct";else counts[answer[i]]=(counts[answer[i]]||0)+1;}
+  for(let i=0;i<5;i++){if(res[i]!=="correct"&&counts[g[i]]>0){res[i]="present";counts[g[i]]--;}}
+  res.forEach((state,i)=>{
+    const t=tiles[row][i];
+    setTimeout(()=>{t.classList.add("flip");
+      setTimeout(()=>{t.classList.remove("flip");t.classList.add(state);
+        const kbtn=keys[g[i]];
+        if(kbtn){const rank={absent:1,present:2,correct:3},curRank=rank[[...kbtn.classList].find(c=>rank[c])]||0;
+          if(rank[state]>curRank){kbtn.classList.remove("absent","present","correct");kbtn.classList.add(state);}}
+      },250);
+    },i*280);
+  });
+  const done=g===answer, lastRow=row===5;
+  setTimeout(()=>{
+    if(done){over=true;statusEl.textContent="You got it";}
+    else if(lastRow){over=true;statusEl.textContent="Word: "+answer.toUpperCase();}
+    else statusEl.textContent=(6-row)+" guesses left";
+  },5*280+300);
+  if(done||lastRow)over=true;
+  row++;cur="";
+}
+document.getElementById("again").onclick=start;
+addEventListener("keydown",e=>{
+  if(e.key==="Enter"||e.key==="Backspace")press(e.key);
+  else if(/^[a-zA-Z]$/.test(e.key))press(e.key.toLowerCase());
+});
+start();
+</script>
+</body>
+</html>

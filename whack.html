@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Whack-a-Mole</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0e13;--panel:#12151d;--line:#232837;--ink:#e8e4d8;--dim:#6b7183;--x:#f4b942;--o:#5fd4c4}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;background:var(--bg);color:var(--ink);
+  background-image:radial-gradient(600px 400px at 15% 10%,rgba(244,185,66,.07),transparent),
+    radial-gradient(600px 400px at 85% 90%,rgba(95,212,196,.07),transparent);
+  font-family:'IBM Plex Mono',monospace;
+  display:flex;flex-direction:column;align-items:center;padding:24px;
+}
+.back{position:absolute;top:20px;left:24px;color:var(--dim);text-decoration:none;font-size:12px;text-transform:uppercase;letter-spacing:.12em}
+.back:hover{color:var(--ink)}
+h1{font-family:'Fraunces',serif;font-weight:300;font-size:42px;margin:48px 0 8px}
+.status{font-size:12px;text-transform:uppercase;letter-spacing:.18em;color:var(--dim);margin-bottom:20px;display:flex;gap:24px}
+.status b{color:var(--x);font-weight:500}
+.status .t b{color:var(--o)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:28px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.hole{width:min(26vw,110px);height:min(26vw,110px);border-radius:50%;background:#090b10;border:1px solid var(--line);position:relative;overflow:hidden;cursor:pointer;box-shadow:inset 0 8px 18px rgba(0,0,0,.8)}
+.mole{position:absolute;left:50%;bottom:0;width:70%;height:70%;transform:translate(-50%,110%);border-radius:50% 50% 40% 40%;background:var(--x);transition:transform .14s cubic-bezier(.34,1.4,.64,1)}
+.mole::before,.mole::after{content:'';position:absolute;top:32%;width:12%;height:12%;border-radius:50%;background:var(--bg)}
+.mole::before{left:28%}.mole::after{right:28%}
+.hole.up .mole{transform:translate(-50%,8%)}
+.hole.bonk .mole{background:var(--o);transform:translate(-50%,110%)}
+.bar{display:flex;justify-content:center;margin-top:22px}
+button{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:9px 22px;font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:.14em;cursor:pointer}
+button:hover{border-color:var(--dim)}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">&larr; Arcade</a>
+<h1>Whack-a-Mole</h1>
+<div class="status">
+  <span>Score <b id="score">0</b></span>
+  <span class="t">Time <b id="time">30</b>s</span>
+  <span>Best <b id="best">0</b></span>
+</div>
+<div class="card">
+  <div class="board" id="board"></div>
+  <div class="bar"><button id="start">Start 30s round</button></div>
+</div>
+<script>
+const board=document.getElementById('board');
+const scoreEl=document.getElementById('score'),timeEl=document.getElementById('time'),bestEl=document.getElementById('best');
+const startBtn=document.getElementById('start');
+let score=0,timeLeft=30,running=false,moleTimer=null,tick=null;
+let best=+(localStorage.getItem('whackBest')||0);
+bestEl.textContent=best;
+
+const holes=[];
+for(let i=0;i<9;i++){
+  const h=document.createElement('div');h.className='hole';
+  h.innerHTML='<div class="mole"></div>';
+  h.addEventListener('pointerdown',()=>{
+    if(!running||!h.classList.contains('up'))return;
+    h.classList.remove('up');h.classList.add('bonk');
+    setTimeout(()=>h.classList.remove('bonk'),200);
+    score++;scoreEl.textContent=score;
+  });
+  board.appendChild(h);holes.push(h);
+}
+function popMole(){
+  if(!running)return;
+  const free=holes.filter(h=>!h.classList.contains('up'));
+  if(free.length){
+    const h=free[Math.floor(Math.random()*free.length)];
+    h.classList.add('up');
+    setTimeout(()=>h.classList.remove('up'),650+Math.random()*500);
+  }
+  moleTimer=setTimeout(popMole,380+Math.random()*420);
+}
+startBtn.addEventListener('click',()=>{
+  if(running)return;
+  score=0;timeLeft=30;running=true;
+  scoreEl.textContent=0;timeEl.textContent=30;
+  startBtn.textContent='Whack!';
+  popMole();
+  tick=setInterval(()=>{
+    timeLeft--;timeEl.textContent=timeLeft;
+    if(timeLeft<=0){
+      running=false;clearInterval(tick);clearTimeout(moleTimer);
+      holes.forEach(h=>h.classList.remove('up'));
+      if(score>best){best=score;localStorage.setItem('whackBest',best);bestEl.textContent=best;}
+      startBtn.textContent='Play again';
+    }
+  },1000);
+});
+</script>
+</body>
+</html>

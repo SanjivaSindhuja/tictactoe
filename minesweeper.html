@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minesweeper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0e13;--panel:#12151d;--line:#232837;--ink:#e8e4d8;--dim:#6b7183;--x:#f4b942;--o:#5fd4c4}
+*{box-sizing:border-box;margin:0}
+body{min-height:100vh;background:var(--bg);color:var(--ink);font-family:'IBM Plex Mono',monospace;display:flex;flex-direction:column;align-items:center;padding:24px 16px;
+background-image:radial-gradient(600px 400px at 15% 10%,rgba(244,185,66,.07),transparent 70%),radial-gradient(600px 400px at 85% 90%,rgba(95,212,196,.07),transparent 70%)}
+.back{align-self:flex-start;color:var(--dim);text-decoration:none;font-size:12px;text-transform:uppercase;letter-spacing:.12em}
+.back:hover{color:var(--ink)}
+h1{font-family:'Fraunces',serif;font-weight:300;font-size:2.4rem;margin:14px 0 6px}
+.status{font-size:12px;text-transform:uppercase;letter-spacing:.18em;color:var(--dim);margin-bottom:14px}
+.status b{color:var(--x);font-weight:500}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.55);padding:16px}
+.grid{display:grid;grid-template-columns:repeat(9,minmax(30px,40px));gap:4px}
+.cell{aspect-ratio:1;border:1px solid var(--line);border-radius:6px;background:#171b26;display:flex;align-items:center;justify-content:center;
+font-size:14px;font-weight:500;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.cell.open{background:#0e1118;cursor:default}
+.cell.boom{background:rgba(244,185,66,.25)}
+button{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:999px;text-transform:uppercase;font-family:inherit;font-size:12px;letter-spacing:.12em;padding:8px 20px;cursor:pointer}
+button:hover{border-color:var(--o);color:var(--o)}
+.bar{margin-top:14px;display:flex;justify-content:center}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">&larr; Arcade</a>
+<h1>Minesweeper</h1>
+<div class="status">Mines <b id="mines">10</b> &middot; <span id="msg">Click to reveal &middot; right-click / long-press to flag</span></div>
+<div class="card">
+<div class="grid" id="grid"></div>
+<div class="bar"><button id="restart">Restart</button></div>
+</div>
+<script>
+const N=9,M=10,gridEl=document.getElementById('grid');
+const nums=['','var(--o)','var(--x)','#e8e4d8','#5fd4c4','#f4b942','#e8e4d8','#5fd4c4','#f4b942'];
+let mine,open,flag,started,done;
+function reset(){
+  mine=Array(N*N).fill(false);open=Array(N*N).fill(false);flag=Array(N*N).fill(false);
+  started=false;done=false;
+  gridEl.innerHTML='';
+  for(let i=0;i<N*N;i++){
+    const d=document.createElement('div');d.className='cell';d.dataset.i=i;gridEl.appendChild(d);
+  }
+  hud('Click to reveal · right-click / long-press to flag');
+}
+function hud(m){document.getElementById('mines').textContent=M-flag.filter(Boolean).length;document.getElementById('msg').textContent=m}
+const nb=i=>{
+  const r=i/N|0,c=i%N,out=[];
+  for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){
+    if(!dr&&!dc)continue;
+    const nr=r+dr,nc=c+dc;
+    if(nr>=0&&nr<N&&nc>=0&&nc<N)out.push(nr*N+nc);
+  }
+  return out;
+};
+function plant(safe){ // first click safe: no mine on safe cell or its neighbours
+  const banned=new Set([safe,...nb(safe)]);
+  let placed=0;
+  while(placed<M){
+    const i=Math.random()*N*N|0;
+    if(!mine[i]&&!banned.has(i)){mine[i]=true;placed++}
+  }
+}
+function count(i){return nb(i).filter(j=>mine[j]).length}
+function reveal(i){
+  if(open[i]||flag[i])return;
+  open[i]=true;
+  const el=gridEl.children[i],n=count(i);
+  el.classList.add('open');
+  if(n){el.textContent=n;el.style.color=nums[n]}
+  else nb(i).forEach(reveal); // flood fill
+}
+function click(i){
+  if(done||flag[i]||open[i])return;
+  if(!started){started=true;plant(i)}
+  if(mine[i]){
+    done=true;
+    mine.forEach((m,j)=>{if(m){const el=gridEl.children[j];el.classList.add('open','boom');el.textContent='✹'}});
+    hud('Boom — restart');return;
+  }
+  reveal(i);
+  if(open.filter(Boolean).length===N*N-M){
+    done=true;hud('Cleared — you win');
+    mine.forEach((m,j)=>{if(m&&!flag[j]){gridEl.children[j].textContent='⚑';gridEl.children[j].style.color='var(--o)'}});
+  }
+}
+function toggleFlag(i){
+  if(done||open[i])return;
+  flag[i]=!flag[i];
+  gridEl.children[i].textContent=flag[i]?'⚑':'';
+  gridEl.children[i].style.color='var(--x)';
+  hud('');
+}
+gridEl.addEventListener('click',e=>{const i=e.target.dataset.i;if(i!==undefined)click(+i)});
+gridEl.addEventListener('contextmenu',e=>{e.preventDefault();const i=e.target.dataset.i;if(i!==undefined)toggleFlag(+i)});
+// long-press flag for touch
+let pressTimer=null,longPressed=false;
+gridEl.addEventListener('touchstart',e=>{
+  const i=e.target.dataset.i;if(i===undefined)return;
+  longPressed=false;
+  pressTimer=setTimeout(()=>{longPressed=true;toggleFlag(+i)},450);
+},{passive:true});
+gridEl.addEventListener('touchend',e=>{
+  clearTimeout(pressTimer);
+  if(longPressed){e.preventDefault()} // swallow the tap after a long-press flag
+});
+gridEl.addEventListener('touchmove',()=>clearTimeout(pressTimer),{passive:true});
+document.getElementById('restart').onclick=reset;
+reset();
+</script>
+</body>
+</html>

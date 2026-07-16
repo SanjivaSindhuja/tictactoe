@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2048</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0e13;--panel:#12151d;--line:#232837;--ink:#e8e4d8;--dim:#6b7183;--x:#f4b942;--o:#5fd4c4}
+*{box-sizing:border-box;margin:0}
+body{min-height:100vh;background:var(--bg);color:var(--ink);font-family:'IBM Plex Mono',monospace;display:flex;flex-direction:column;align-items:center;padding:24px 16px;
+background-image:radial-gradient(600px 400px at 15% 10%,rgba(244,185,66,.07),transparent 70%),radial-gradient(600px 400px at 85% 90%,rgba(95,212,196,.07),transparent 70%)}
+.back{align-self:flex-start;color:var(--dim);text-decoration:none;font-size:12px;text-transform:uppercase;letter-spacing:.12em}
+.back:hover{color:var(--ink)}
+h1{font-family:'Fraunces',serif;font-weight:300;font-size:2.4rem;margin:14px 0 6px}
+.status{font-size:12px;text-transform:uppercase;letter-spacing:.18em;color:var(--dim);margin-bottom:14px}
+.status b{color:var(--x);font-weight:500}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.55);padding:16px;touch-action:none}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(64px,84px));gap:8px}
+.cell{aspect-ratio:1;border:1px solid var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;
+font-size:clamp(16px,5vw,26px);font-weight:500;background:#0e1118;transition:transform .08s}
+.cell.pop{transform:scale(1.12)}
+button{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:999px;text-transform:uppercase;font-family:inherit;font-size:12px;letter-spacing:.12em;padding:8px 20px;cursor:pointer}
+button:hover{border-color:var(--o);color:var(--o)}
+.bar{margin-top:14px;display:flex;justify-content:center}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">&larr; Arcade</a>
+<h1>2048</h1>
+<div class="status">Score <b id="score">0</b> &middot; <span id="msg">Arrows / swipe</span></div>
+<div class="card">
+<div class="grid" id="grid"></div>
+<div class="bar"><button id="restart">Restart</button></div>
+</div>
+<script>
+const gridEl=document.getElementById('grid');
+let g,score,over,won;
+const tint=v=>{
+  if(!v)return['#0e1118','var(--dim)'];
+  const amber=Math.min(Math.log2(v)/11,1);
+  return [`rgba(244,185,66,${.06+amber*.32})`, v>=8?'var(--x)':'var(--ink)'];
+};
+function reset(){g=Array(16).fill(0);score=0;over=false;won=false;spawn();spawn();render('Arrows / swipe')}
+function spawn(){
+  const empty=g.map((v,i)=>v?-1:i).filter(i=>i>=0);
+  if(empty.length)g[empty[Math.random()*empty.length|0]]=Math.random()<.9?2:4;
+}
+function render(msg,popped=[]){
+  gridEl.innerHTML='';
+  g.forEach((v,i)=>{
+    const d=document.createElement('div');d.className='cell'+(popped.includes(i)?' pop':'');
+    const[bg,fg]=tint(v);d.style.background=bg;d.style.color=fg;d.textContent=v||'';gridEl.appendChild(d);
+  });
+  document.getElementById('score').textContent=score;
+  document.getElementById('msg').textContent=msg;
+}
+// slide one row-of-4 left; returns [newRow, gained, mergedPositions]
+function slide(row){
+  const a=row.filter(v=>v),out=[],merged=[];let gain=0;
+  for(let i=0;i<a.length;i++){
+    if(a[i]===a[i+1]){out.push(a[i]*2);gain+=a[i]*2;merged.push(out.length-1);i++}
+    else out.push(a[i]);
+  }
+  while(out.length<4)out.push(0);
+  return[out,gain,merged];
+}
+const lines={
+  left:r=>[0,1,2,3].map(c=>r*4+c),
+  right:r=>[3,2,1,0].map(c=>r*4+c),
+  up:r=>[0,1,2,3].map(c=>c*4+r),
+  down:r=>[3,2,1,0].map(c=>c*4+r)
+};
+function move(dirName){
+  if(over)return;
+  let moved=false,popped=[];
+  for(let r=0;r<4;r++){
+    const idx=lines[dirName](r),row=idx.map(i=>g[i]);
+    const[out,gain,merged]=slide(row);
+    if(out.some((v,i)=>v!==row[i])){
+      moved=true;score+=gain;
+      out.forEach((v,i)=>g[idx[i]]=v);
+      merged.forEach(m=>popped.push(idx[m]));
+    }
+  }
+  if(!moved)return;
+  spawn();
+  let msg='';
+  if(!won&&g.includes(2048)){won=true;msg='2048! You win — keep going'}
+  if(!canMove()){over=true;msg='Game over — restart'}
+  render(msg,popped);
+}
+function canMove(){
+  if(g.includes(0))return true;
+  for(let r=0;r<4;r++)for(let c=0;c<4;c++){
+    const v=g[r*4+c];
+    if(c<3&&g[r*4+c+1]===v)return true;
+    if(r<3&&g[(r+1)*4+c]===v)return true;
+  }
+  return false;
+}
+addEventListener('keydown',e=>{
+  const d={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down'}[e.key];
+  if(d){e.preventDefault();move(d)}
+});
+let tx,ty;
+gridEl.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
+gridEl.addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;
+  if(Math.abs(dx)<24&&Math.abs(dy)<24)return;
+  move(Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up'));
+});
+document.getElementById('restart').onclick=reset;
+reset();
+</script>
+</body>
+</html>

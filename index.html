@@ -1,164 +1,56 @@
-<title>Noughts & Crosses</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Midnight Arcade</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0c0e13;
-    --panel: #12151d;
-    --line: #232837;
-    --ink: #e8e4d8;
-    --dim: #6b7183;
-    --x: #f4b942;   /* amber */
-    --o: #5fd4c4;   /* teal */
-  }
-  * { box-sizing: border-box; margin: 0; }
-  body {
-    min-height: 100vh;
-    display: grid;
-    place-items: center;
-    background:
-      radial-gradient(60vw 60vw at 20% -10%, rgba(244,185,66,.06), transparent 60%),
-      radial-gradient(50vw 50vw at 90% 110%, rgba(95,212,196,.07), transparent 60%),
-      var(--bg);
-    color: var(--ink);
-    font-family: 'IBM Plex Mono', monospace;
-  }
-  /* grain overlay */
-  body::after {
-    content: ''; position: fixed; inset: 0; pointer-events: none; opacity: .5;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
-  }
-  main { text-align: center; padding: 32px 16px; animation: rise .7s cubic-bezier(.2,.7,.2,1) both; }
-  @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
-
-  h1 {
-    font-family: 'Fraunces', serif;
-    font-weight: 300;
-    font-size: clamp(34px, 6vw, 52px);
-    letter-spacing: .02em;
-  }
-  h1 em { font-style: normal; font-weight: 600; color: var(--x); }
-  h1 em + em { color: var(--o); }
-
-  #status {
-    margin: 14px 0 28px;
-    font-size: 13px;
-    letter-spacing: .28em;
-    text-transform: uppercase;
-    color: var(--dim);
-    transition: color .3s;
-  }
-  #status.x { color: var(--x); }
-  #status.o { color: var(--o); }
-
-  #board {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(84px, 108px));
-    gap: 10px;
-    padding: 14px;
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    box-shadow: 0 30px 60px -20px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.04);
-  }
-  #board button {
-    aspect-ratio: 1;
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    background: linear-gradient(180deg, rgba(255,255,255,.02), transparent);
-    font-family: 'Fraunces', serif;
-    font-weight: 600;
-    font-size: clamp(38px, 7vw, 56px);
-    line-height: 1;
-    color: var(--ink);
-    cursor: pointer;
-    transition: border-color .2s, transform .12s, box-shadow .2s;
-  }
-  #board button:hover:enabled:empty { border-color: var(--dim); transform: translateY(-2px); }
-  #board button:active:enabled { transform: translateY(0); }
-  #board button.x { color: var(--x); text-shadow: 0 0 24px rgba(244,185,66,.45); animation: pop .25s cubic-bezier(.3,1.6,.5,1); }
-  #board button.o { color: var(--o); text-shadow: 0 0 24px rgba(95,212,196,.45); animation: pop .25s cubic-bezier(.3,1.6,.5,1); }
-  @keyframes pop { from { transform: scale(.6); opacity: 0; } }
-  #board button.win { border-color: currentColor; box-shadow: 0 0 30px -6px currentColor, inset 0 0 18px -8px currentColor; }
-  #board.done button:not(.win) { opacity: .35; }
-
-  #reset {
-    margin-top: 28px;
-    padding: 12px 34px;
-    font: 500 12px 'IBM Plex Mono', monospace;
-    letter-spacing: .24em;
-    text-transform: uppercase;
-    color: var(--ink);
-    background: transparent;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    cursor: pointer;
-    transition: border-color .2s, background .2s;
-  }
-  #reset:hover { border-color: var(--dim); background: rgba(255,255,255,.03); }
-
-  #score { margin-top: 18px; font-size: 12px; letter-spacing: .2em; color: var(--dim); }
-  #score b { font-weight: 500; color: var(--ink); }
+:root{--bg:#0c0e13;--panel:#12151d;--line:#232837;--ink:#e8e4d8;--dim:#6b7183;--x:#f4b942;--o:#5fd4c4}
+*{box-sizing:border-box;margin:0}
+body{min-height:100vh;background:var(--bg);color:var(--ink);font-family:'IBM Plex Mono',monospace;padding:40px 20px 60px;
+background-image:radial-gradient(800px 500px at 10% -5%,rgba(244,185,66,.07),transparent),radial-gradient(800px 500px at 90% 105%,rgba(95,212,196,.07),transparent)}
+header{text-align:center;margin-bottom:40px}
+h1{font-family:'Fraunces',serif;font-weight:300;font-size:clamp(2.4rem,7vw,4rem)}
+.sub{color:var(--dim);font-size:13px;text-transform:uppercase;letter-spacing:.18em;margin-top:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;max-width:1100px;margin:0 auto}
+.card{display:block;text-decoration:none;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.5);padding:22px 18px;transition:transform .2s,border-color .2s,box-shadow .2s;
+opacity:0;animation:fadein .5s ease forwards}
+.card:nth-child(n){animation-delay:calc(var(--i)*60ms)}
+@keyframes fadein{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.card:hover{transform:translateY(-4px)}
+.card:nth-child(odd):hover{border-color:var(--x);box-shadow:0 24px 60px rgba(0,0,0,.5),0 0 24px rgba(244,185,66,.25)}
+.card:nth-child(even):hover{border-color:var(--o);box-shadow:0 24px 60px rgba(0,0,0,.5),0 0 24px rgba(95,212,196,.25)}
+.glyph{font-size:2rem}
+.title{font-family:'Fraunces',serif;font-weight:300;font-size:1.4rem;margin:10px 0 6px}
+.desc{color:var(--dim);font-size:12px;line-height:1.5}
 </style>
-<main>
-  <h1>Noughts <em>&</em> Crosses</h1>
-  <div id="status">X to move</div>
-  <div id="board" role="grid" aria-label="Tic tac toe board"></div>
-  <button id="reset">New round</button>
-  <div id="score">X <b id="sx">0</b> · draws <b id="sd">0</b> · O <b id="so">0</b></div>
-</main>
+<header>
+  <h1>Midnight Arcade</h1>
+  <div class="sub">20 tiny games · zero dependencies</div>
+</header>
+<div class="grid" id="grid"></div>
 <script>
-  const board = document.getElementById('board');
-  const status = document.getElementById('status');
-  const WINS = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-  const score = { X: 0, O: 0, D: 0 };
-  let cells, turn, over;
-
-  function start() {
-    board.innerHTML = '';
-    board.classList.remove('done');
-    cells = Array(9).fill('');
-    turn = 'X'; over = false;
-    setStatus('X to move', 'x');
-    for (let i = 0; i < 9; i++) {
-      const b = document.createElement('button');
-      b.setAttribute('aria-label', 'cell ' + (i + 1));
-      b.onclick = () => play(i, b);
-      board.appendChild(b);
-    }
-  }
-
-  function setStatus(text, cls) {
-    status.textContent = text;
-    status.className = cls || '';
-  }
-
-  function play(i, btn) {
-    if (over || cells[i]) return;
-    cells[i] = turn;
-    btn.textContent = turn;
-    btn.classList.add(turn.toLowerCase());
-    const win = WINS.find(w => w.every(j => cells[j] === turn));
-    if (win) {
-      over = true;
-      board.classList.add('done');
-      win.forEach(j => board.children[j].classList.add('win'));
-      setStatus(turn + ' takes the round', turn.toLowerCase());
-      score[turn]++;
-    } else if (cells.every(c => c)) {
-      over = true;
-      setStatus('Stalemate');
-      score.D++;
-    } else {
-      turn = turn === 'X' ? 'O' : 'X';
-      setStatus(turn + ' to move', turn.toLowerCase());
-    }
-    document.getElementById('sx').textContent = score.X;
-    document.getElementById('so').textContent = score.O;
-    document.getElementById('sd').textContent = score.D;
-  }
-
-  document.getElementById('reset').onclick = start;
-  start();
+const GAMES=[
+["tictactoe.html","Tic Tac Toe","❌","Three in a row, oldest trick in the book."],
+["snake.html","Snake","🐍","Eat, grow, don't bite yourself."],
+["2048.html","2048","🔢","Slide tiles, double up, chase 2048."],
+["minesweeper.html","Minesweeper","💣","Flag the bombs, clear the field."],
+["memory.html","Memory Match","🃏","Flip pairs, train your recall."],
+["pong.html","Pong","🏓","The original — paddle vs paddle."],
+["breakout.html","Breakout","🧱","Smash every brick with one ball."],
+["flappy.html","Flappy","🐤","Tap to flap, thread the gaps."],
+["dino.html","Dino Run","🦖","Jump the cacti, outrun the void."],
+["simon.html","Simon","🎵","Watch, remember, repeat the pattern."],
+["whack.html","Whack-a-Mole","🔨","Fast hands beat sneaky moles."],
+["lightsout.html","Lights Out","💡","Toggle till the board goes dark."],
+["slider.html","15 Puzzle","🧩","Slide the tiles back into order."],
+["hangman.html","Hangman","🪢","Guess letters, save the stick figure."],
+["wordle.html","Wordle","🟩","Five letters, six guesses."],
+["connect4.html","Connect Four","🔴","Drop discs, line up four."],
+["rps.html","Rock Paper Scissors","✂️","Best the machine's mind games."],
+["tetris.html","Tetris","🕹️","Stack tetrominoes, clear the lines."],
+["reaction.html","Reaction Test","⚡","Click the teal — how fast are you?"],
+["typing.html","Typing Test","⌨️","30 seconds, live WPM and accuracy."]];
+document.getElementById('grid').innerHTML=GAMES.map(([f,t,g,d],i)=>
+ `<a class="card" style="--i:${i}" href="${f}"><div class="glyph">${g}</div><div class="title">${t}</div><div class="desc">${d}</div></a>`).join('');
 </script>

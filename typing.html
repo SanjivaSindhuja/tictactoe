@@ -1,0 +1,83 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Typing Test — Midnight Arcade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0e13;--panel:#12151d;--line:#232837;--ink:#e8e4d8;--dim:#6b7183;--x:#f4b942;--o:#5fd4c4}
+*{box-sizing:border-box;margin:0}
+body{min-height:100vh;background:var(--bg);color:var(--ink);font-family:'IBM Plex Mono',monospace;display:flex;flex-direction:column;align-items:center;padding:16px;
+background-image:radial-gradient(600px 400px at 15% 0%,rgba(244,185,66,.06),transparent),radial-gradient(600px 400px at 85% 100%,rgba(95,212,196,.06),transparent)}
+a.back{align-self:flex-start;color:var(--dim);text-decoration:none;font-size:12px;text-transform:uppercase;letter-spacing:.12em}
+a.back:hover{color:var(--ink)}
+h1{font-family:'Fraunces',serif;font-weight:300;font-size:2.2rem;margin:8px 0 14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.5);padding:18px;width:min(640px,100%)}
+.stats{display:flex;gap:24px;margin-bottom:14px;flex-wrap:wrap}
+.label{font-size:11px;text-transform:uppercase;letter-spacing:.15em;color:var(--dim)}
+.val{font-size:1.3rem}
+#text{font-size:17px;line-height:1.8;letter-spacing:.02em;color:var(--dim);margin-bottom:14px;min-height:100px}
+#text span.ok{color:var(--o)}
+#text span.bad{color:var(--x);text-decoration:underline}
+#text span.cur{border-left:2px solid var(--ink)}
+input{width:100%;background:#0a0c10;border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'IBM Plex Mono',monospace;font-size:15px;padding:12px}
+input:focus{outline:none;border-color:var(--o)}
+button{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:.1em;cursor:pointer;margin-top:14px}
+button:hover{border-color:var(--o)}
+</style>
+<a class="back" href="index.html">← Arcade</a>
+<h1>Typing Test</h1>
+<div class="card">
+  <div class="stats">
+    <div><div class="label">Time</div><div class="val" id="time">30</div></div>
+    <div><div class="label">WPM</div><div class="val" id="wpm">0</div></div>
+    <div><div class="label">Accuracy</div><div class="val" id="acc">100%</div></div>
+  </div>
+  <div id="text"></div>
+  <input id="in" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Start typing to begin the 30s clock…">
+  <button id="restart">Restart</button>
+</div>
+<script>
+const POOL=[
+"The quick brown fox jumps over the lazy dog while the moon rises slowly.",
+"Midnight arcades hum with the glow of amber screens and teal shadows.",
+"Practice makes progress and every keystroke counts toward mastery.",
+"A small boat drifted across the quiet harbor under a violet sky.",
+"Coffee cools quickly when you forget it beside a busy keyboard.",
+"Simple tools built with care often outlast their clever rivals.",
+"The library smelled of old paper and rain from the open window.",
+"Twenty tiny games can teach you more than one giant framework.",
+"She solved the puzzle by turning it upside down and starting over.",
+"Fast fingers are useless without accuracy guiding every word."];
+const $=id=>document.getElementById(id);
+let target,typed,start,timer,total=0,correct=0,done;
+function pick(){return POOL[Math.floor(Math.random()*POOL.length)];}
+function reset(){target=pick();typed='';start=null;done=false;total=0;correct=0;clearInterval(timer);
+ $('time').textContent='30';$('wpm').textContent='0';$('acc').textContent='100%';
+ $('in').value='';$('in').disabled=false;render();$('in').focus();}
+function render(){
+ $('text').innerHTML=[...target].map((ch,i)=>{
+  if(i<typed.length)return `<span class="${typed[i]===ch?'ok':'bad'}">${ch===' '?'&nbsp;':ch}</span>`;
+  if(i===typed.length)return `<span class="cur">${ch===' '?'&nbsp;':ch}</span>`;
+  return ch===' '?'&nbsp;':ch;}).join('');}
+function tick(){
+ const left=Math.max(0,30-Math.floor((Date.now()-start)/1000));
+ $('time').textContent=left;
+ updateStats();
+ if(left<=0){done=true;clearInterval(timer);$('in').disabled=true;}}
+function updateStats(){
+ const mins=Math.max((Date.now()-start)/60000,1/60);
+ $('wpm').textContent=Math.round((correct/5)/mins);
+ $('acc').textContent=total?Math.round(correct/total*100)+'%':'100%';}
+$('in').addEventListener('input',e=>{
+ if(done)return;
+ if(!start){start=Date.now();timer=setInterval(tick,250);}
+ const v=e.target.value;
+ if(v.length>typed.length){ // count only newly typed chars
+  for(let i=typed.length;i<v.length&&i<target.length;i++){total++;if(v[i]===target[i])correct++;}}
+ typed=v.slice(0,target.length);render();updateStats();
+ if(typed.length>=target.length){ // next sentence, keep clock running
+  target=pick();typed='';e.target.value='';render();}});
+$('restart').addEventListener('click',reset);
+reset();
+</script>

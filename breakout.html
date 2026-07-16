@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Breakout — Arcade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0e13;--panel:#12151d;--line:#232837;--ink:#e8e4d8;--dim:#6b7183;--x:#f4b942;--o:#5fd4c4}
+*{margin:0;box-sizing:border-box}
+body{
+  background:var(--bg) radial-gradient(600px 400px at 15% 10%,rgba(244,185,66,.07),transparent 70%),
+  radial-gradient(600px 400px at 85% 90%,rgba(95,212,196,.07),transparent 70%);
+  background-color:var(--bg);color:var(--ink);min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;padding:16px}
+.back{position:fixed;top:16px;left:20px;color:var(--dim);text-decoration:none;
+  font-size:12px;text-transform:uppercase;letter-spacing:.15em}
+.back:hover{color:var(--ink)}
+h1{font-family:'Fraunces',serif;font-weight:300;font-size:clamp(28px,5vw,42px);margin-bottom:8px}
+.status{font-size:12px;text-transform:uppercase;letter-spacing:.2em;color:var(--dim);margin-bottom:16px;min-height:1.2em}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;
+  padding:16px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+canvas{display:block;max-width:100%;height:auto;touch-action:none;border-radius:8px}
+button{margin-top:16px;background:transparent;color:var(--ink);border:1px solid var(--line);
+  border-radius:999px;padding:10px 24px;font-family:'IBM Plex Mono',monospace;font-size:12px;
+  text-transform:uppercase;letter-spacing:.15em;cursor:pointer}
+button:hover{border-color:var(--o)}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">&larr; Arcade</a>
+<h1>Breakout</h1>
+<div class="status" id="status"></div>
+<div class="card"><canvas id="c" width="560" height="480"></canvas></div>
+<button id="btn">Restart</button>
+<script>
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const W=560,H=480,PW=90,PH=12,BR=7;
+const ROWS=6,COLS=10,BW=48,BH=16,BPAD=6,BTOP=60,BLEFT=(W-COLS*BW-(COLS-1)*BPAD)/2;
+const rowColors=['#f4b942','#e0a83a','#c99732','#5fd4c4','#4fb8aa','#3f9c90'];
+let paddle,ball,bricks,lives,score,state; // state: play|win|lose
+const el=document.getElementById('status');
+
+function reset(){
+  paddle={x:W/2-PW/2};
+  ball={x:W/2,y:H-60,vx:3.2,vy:-4.2};
+  bricks=[];
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)
+    bricks.push({x:BLEFT+c*(BW+BPAD),y:BTOP+r*(BH+BPAD),color:rowColors[r],alive:true});
+  lives=3;score=0;state='play';
+}
+function movePaddle(clientX){
+  const r=cv.getBoundingClientRect();
+  const x=(clientX-r.left)*(W/r.width);
+  paddle.x=Math.max(0,Math.min(W-PW,x-PW/2));
+}
+cv.addEventListener('mousemove',e=>movePaddle(e.clientX));
+cv.addEventListener('touchmove',e=>{e.preventDefault();movePaddle(e.touches[0].clientX);},{passive:false});
+cv.addEventListener('touchstart',e=>{e.preventDefault();movePaddle(e.touches[0].clientX);},{passive:false});
+document.getElementById('btn').onclick=reset;
+
+function update(){
+  if(state!=='play')return;
+  ball.x+=ball.vx;ball.y+=ball.vy;
+  if(ball.x-BR<0){ball.x=BR;ball.vx*=-1;}
+  if(ball.x+BR>W){ball.x=W-BR;ball.vx*=-1;}
+  if(ball.y-BR<0){ball.y=BR;ball.vy*=-1;}
+  // paddle
+  const py=H-30;
+  if(ball.vy>0&&ball.y+BR>=py&&ball.y+BR<=py+PH+8&&ball.x>paddle.x-BR&&ball.x<paddle.x+PW+BR){
+    ball.y=py-BR;ball.vy*=-1;
+    ball.vx=((ball.x-(paddle.x+PW/2))/(PW/2))*5;
+  }
+  // bricks
+  for(const b of bricks){
+    if(!b.alive)continue;
+    if(ball.x+BR>b.x&&ball.x-BR<b.x+BW&&ball.y+BR>b.y&&ball.y-BR<b.y+BH){
+      b.alive=false;score+=10;
+      // reflect on the axis with least penetration
+      const ox=Math.min(ball.x+BR-b.x,b.x+BW-(ball.x-BR));
+      const oy=Math.min(ball.y+BR-b.y,b.y+BH-(ball.y-BR));
+      if(ox<oy)ball.vx*=-1;else ball.vy*=-1;
+      break;
+    }
+  }
+  if(bricks.every(b=>!b.alive)){state='win';}
+  // lose ball
+  if(ball.y-BR>H){
+    lives--;
+    if(lives<=0)state='lose';
+    else{ball={x:W/2,y:H-60,vx:3.2*(Math.random()<.5?1:-1),vy:-4.2};}
+  }
+}
+function draw(){
+  ctx.fillStyle='#0c0e13';ctx.fillRect(0,0,W,H);
+  for(const b of bricks)if(b.alive){ctx.fillStyle=b.color;ctx.fillRect(b.x,b.y,BW,BH);}
+  ctx.fillStyle='#e8e4d8';ctx.fillRect(paddle.x,H-30,PW,PH);
+  ctx.beginPath();ctx.arc(ball.x,ball.y,BR,0,7);ctx.fill();
+  ctx.font='12px "IBM Plex Mono",monospace';ctx.fillStyle='#6b7183';
+  ctx.textAlign='left';ctx.fillText('SCORE '+score,16,28);
+  ctx.textAlign='right';ctx.fillText('LIVES '+lives,W-16,28);
+  el.textContent=state==='play'?'Score '+score+' · Lives '+lives
+    :state==='win'?'You cleared it! Score '+score:'Game over · Score '+score;
+  if(state!=='play'){
+    ctx.fillStyle='rgba(12,14,19,.7)';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle=state==='win'?'#5fd4c4':'#f4b942';
+    ctx.font='300 36px Fraunces,serif';ctx.textAlign='center';
+    ctx.fillText(state==='win'?'You win!':'Game over',W/2,H/2);
+  }
+}
+function loop(){update();draw();requestAnimationFrame(loop);}
+reset();requestAnimationFrame(loop);
+</script>
+</body>
+</html>

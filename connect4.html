@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connect Four</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0e13;--panel:#12151d;--line:#232837;--ink:#e8e4d8;--dim:#6b7183;--x:#f4b942;--o:#5fd4c4}
+*{box-sizing:border-box;margin:0}
+body{min-height:100vh;background:var(--bg);color:var(--ink);font-family:'IBM Plex Mono',monospace;display:flex;flex-direction:column;align-items:center;padding:20px;
+background-image:radial-gradient(600px 400px at 15% 10%,rgba(244,185,66,.07),transparent),radial-gradient(600px 400px at 85% 90%,rgba(95,212,196,.07),transparent)}
+.back{align-self:flex-start;color:var(--dim);text-decoration:none;font-size:12px;text-transform:uppercase;letter-spacing:.12em}
+h1{font-family:'Fraunces',serif;font-weight:300;font-size:clamp(28px,6vw,44px);margin:12px 0 14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.5);padding:20px;max-width:440px;width:100%;text-align:center}
+#status{font-size:12px;text-transform:uppercase;letter-spacing:.15em;color:var(--dim);min-height:1.4em;margin-bottom:12px}
+#grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;touch-action:manipulation}
+.cell{aspect-ratio:1;border:1px solid var(--line);border-radius:50%;cursor:pointer;position:relative;overflow:hidden}
+.disc{position:absolute;inset:12%;border-radius:50%;animation:drop .3s ease-in}
+.disc.p1{background:var(--x)}
+.disc.p2{background:var(--o)}
+.cell.win{box-shadow:0 0 0 2px var(--ink) inset}
+@keyframes drop{from{transform:translateY(-300%)}to{transform:translateY(0)}}
+#again{margin-top:16px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--ink);font-family:inherit;font-size:12px;text-transform:uppercase;letter-spacing:.12em;padding:9px 22px;cursor:pointer}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">&larr; Arcade</a>
+<h1>Connect Four</h1>
+<div class="card">
+  <div id="status">Your move (amber)</div>
+  <div id="grid"></div>
+  <button id="again">New game</button>
+</div>
+<script>
+const ROWS=6,COLS=7,grid=document.getElementById("grid"),statusEl=document.getElementById("status");
+let board,cells,over,busy;
+function start(){
+  board=Array.from({length:ROWS},()=>Array(COLS).fill(0));
+  over=false;busy=false;grid.innerHTML="";cells=[];
+  for(let r=0;r<ROWS;r++){cells.push([]);
+    for(let c=0;c<COLS;c++){
+      const d=document.createElement("div");d.className="cell";
+      d.onclick=()=>human(c);grid.appendChild(d);cells[r].push(d);
+    }}
+  statusEl.textContent="Your move (amber)";
+}
+function dropRow(b,c){for(let r=ROWS-1;r>=0;r--)if(!b[r][c])return r;return -1;}
+function winCells(b,p){
+  const dirs=[[0,1],[1,0],[1,1],[1,-1]];
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)for(const[dr,dc]of dirs){
+    const line=[];
+    for(let k=0;k<4;k++){const rr=r+dr*k,cc=c+dc*k;
+      if(rr<0||rr>=ROWS||cc<0||cc>=COLS||b[rr][cc]!==p)break;line.push([rr,cc]);}
+    if(line.length===4)return line;
+  }
+  return null;
+}
+function place(c,p){
+  const r=dropRow(board,c);if(r<0)return false;
+  board[r][c]=p;
+  const disc=document.createElement("div");disc.className="disc p"+p;cells[r][c].appendChild(disc);
+  const w=winCells(board,p);
+  if(w){over=true;w.forEach(([rr,cc])=>cells[rr][cc].classList.add("win"));
+    statusEl.textContent=p===1?"You win":"AI wins";}
+  else if(board[0].every(v=>v)){over=true;statusEl.textContent="Draw";}
+  return true;
+}
+function human(c){
+  if(over||busy)return;
+  if(!place(c,1))return;
+  if(over)return;
+  busy=true;statusEl.textContent="AI thinking";
+  setTimeout(()=>{ai();busy=false;if(!over)statusEl.textContent="Your move (amber)";},350);
+}
+function ai(){
+  // ponytail: 1-ply heuristic (win > block > center-out); minimax if it feels dumb
+  const tryFind=p=>{
+    for(let c=0;c<COLS;c++){const r=dropRow(board,c);if(r<0)continue;
+      board[r][c]=p;const w=!!winCells(board,p);board[r][c]=0;
+      if(w)return c;}
+    return -1;
+  };
+  let c=tryFind(2);           // winning move
+  if(c<0)c=tryFind(1);        // block player
+  if(c<0)for(const k of[3,2,4,1,5,0,6])if(dropRow(board,k)>=0){c=k;break;}
+  place(c,2);
+}
+document.getElementById("again").onclick=start;
+start();
+</script>
+</body>
+</html>

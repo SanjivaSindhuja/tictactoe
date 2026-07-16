@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Snake</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0e13;--panel:#12151d;--line:#232837;--ink:#e8e4d8;--dim:#6b7183;--x:#f4b942;--o:#5fd4c4}
+*{box-sizing:border-box;margin:0}
+body{min-height:100vh;background:var(--bg);color:var(--ink);font-family:'IBM Plex Mono',monospace;display:flex;flex-direction:column;align-items:center;padding:24px 16px;
+background-image:radial-gradient(600px 400px at 15% 10%,rgba(244,185,66,.07),transparent 70%),radial-gradient(600px 400px at 85% 90%,rgba(95,212,196,.07),transparent 70%)}
+.back{align-self:flex-start;color:var(--dim);text-decoration:none;font-size:12px;text-transform:uppercase;letter-spacing:.12em}
+.back:hover{color:var(--ink)}
+h1{font-family:'Fraunces',serif;font-weight:300;font-size:2.4rem;margin:14px 0 6px}
+.status{font-size:12px;text-transform:uppercase;letter-spacing:.18em;color:var(--dim);margin-bottom:14px}
+.status b{color:var(--x);font-weight:500}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.55);padding:16px}
+canvas{display:block;border-radius:8px;touch-action:none}
+button{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:999px;text-transform:uppercase;font-family:inherit;font-size:12px;letter-spacing:.12em;padding:8px 20px;cursor:pointer}
+button:hover{border-color:var(--o);color:var(--o)}
+.bar{margin-top:14px;display:flex;gap:10px;justify-content:center}
+.pad{margin-top:14px;display:grid;grid-template-columns:repeat(3,56px);gap:6px;justify-content:center}
+.pad button{padding:12px 0}
+.pad .u{grid-column:2}.pad .l{grid-column:1;grid-row:2}.pad .d{grid-column:2;grid-row:2}.pad .r{grid-column:3;grid-row:2}
+@media (hover:hover) and (pointer:fine){.pad{display:none}}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">&larr; Arcade</a>
+<h1>Snake</h1>
+<div class="status">Score <b id="score">0</b> &middot; <span id="msg">Arrows / swipe to move</span></div>
+<div class="card">
+<canvas id="c" width="360" height="360"></canvas>
+<div class="bar"><button id="restart">Restart</button></div>
+<div class="pad">
+<button class="u" data-d="0,-1">&uarr;</button>
+<button class="l" data-d="-1,0">&larr;</button>
+<button class="d" data-d="0,1">&darr;</button>
+<button class="r" data-d="1,0">&rarr;</button>
+</div>
+</div>
+<script>
+const N=18, ctx=c.getContext('2d'), CS=c.width/N;
+let snake,dir,nextDir,food,score,dead,tick,timer;
+function reset(){
+  snake=[{x:8,y:9},{x:7,y:9},{x:6,y:9}];dir={x:1,y:0};nextDir=dir;score=0;dead=false;tick=140;
+  placeFood();updHud('Arrows / swipe to move');clearInterval(timer);timer=setInterval(step,tick);draw();
+}
+function placeFood(){
+  do{food={x:Math.random()*N|0,y:Math.random()*N|0}}while(snake.some(s=>s.x===food.x&&s.y===food.y));
+}
+function updHud(m){document.getElementById('score').textContent=score;document.getElementById('msg').textContent=m}
+function step(){
+  dir=nextDir;
+  const h={x:snake[0].x+dir.x,y:snake[0].y+dir.y};
+  if(h.x<0||h.y<0||h.x>=N||h.y>=N||snake.some(s=>s.x===h.x&&s.y===h.y)){
+    dead=true;clearInterval(timer);updHud('Game over — restart');draw();return;
+  }
+  snake.unshift(h);
+  if(h.x===food.x&&h.y===food.y){
+    score++;placeFood();updHud('');
+    if(tick>60){tick-=5;clearInterval(timer);timer=setInterval(step,tick)} // speed-up
+  }else snake.pop();
+  draw();
+}
+function draw(){
+  ctx.fillStyle='#0e1118';ctx.fillRect(0,0,c.width,c.height);
+  ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--o');
+  ctx.beginPath();ctx.arc((food.x+.5)*CS,(food.y+.5)*CS,CS*.32,0,7);ctx.fill();
+  snake.forEach((s,i)=>{
+    ctx.fillStyle=i?'rgba(244,185,66,.75)':'#f4b942';
+    ctx.fillRect(s.x*CS+1,s.y*CS+1,CS-2,CS-2);
+  });
+  if(dead){ctx.fillStyle='rgba(12,14,19,.6)';ctx.fillRect(0,0,c.width,c.height)}
+}
+function setDir(x,y){if(!dead&&!(x===-dir.x&&y===-dir.y))nextDir={x,y}}
+addEventListener('keydown',e=>{
+  const m={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]}[e.key];
+  if(m){e.preventDefault();setDir(m[0],m[1])}
+});
+document.querySelectorAll('.pad button').forEach(b=>b.addEventListener('click',()=>{
+  const[x,y]=b.dataset.d.split(',').map(Number);setDir(x,y);
+}));
+let tx,ty;
+c.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
+c.addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;
+  if(Math.abs(dx)<20&&Math.abs(dy)<20)return;
+  Math.abs(dx)>Math.abs(dy)?setDir(Math.sign(dx),0):setDir(0,Math.sign(dy));
+});
+document.getElementById('restart').onclick=reset;
+reset();
+</script>
+</body>
+</html>

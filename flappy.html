@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flappy — Arcade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0e13;--panel:#12151d;--line:#232837;--ink:#e8e4d8;--dim:#6b7183;--x:#f4b942;--o:#5fd4c4}
+*{margin:0;box-sizing:border-box}
+body{
+  background:var(--bg) radial-gradient(600px 400px at 15% 10%,rgba(244,185,66,.07),transparent 70%),
+  radial-gradient(600px 400px at 85% 90%,rgba(95,212,196,.07),transparent 70%);
+  background-color:var(--bg);color:var(--ink);min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;padding:16px}
+.back{position:fixed;top:16px;left:20px;color:var(--dim);text-decoration:none;
+  font-size:12px;text-transform:uppercase;letter-spacing:.15em}
+.back:hover{color:var(--ink)}
+h1{font-family:'Fraunces',serif;font-weight:300;font-size:clamp(28px,5vw,42px);margin-bottom:8px}
+.status{font-size:12px;text-transform:uppercase;letter-spacing:.2em;color:var(--dim);margin-bottom:16px;min-height:1.2em}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;
+  padding:16px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+canvas{display:block;max-width:100%;height:auto;touch-action:none;border-radius:8px}
+button{margin-top:16px;background:transparent;color:var(--ink);border:1px solid var(--line);
+  border-radius:999px;padding:10px 24px;font-family:'IBM Plex Mono',monospace;font-size:12px;
+  text-transform:uppercase;letter-spacing:.15em;cursor:pointer}
+button:hover{border-color:var(--x)}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">&larr; Arcade</a>
+<h1>Flappy</h1>
+<div class="status" id="status">Tap or press Space to flap</div>
+<div class="card"><canvas id="c" width="420" height="520"></canvas></div>
+<button id="btn">Restart</button>
+<script>
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const W=420,H=520,BX=100,R=12,GRAV=.38,FLAP=-6.8,PIPE_W=56,GAP=140,SPEED=2.4,SPACING=210;
+let bird,pipes,score,state; // ready|play|over
+const el=document.getElementById('status');
+
+function reset(){
+  bird={y:H/2,vy:0};pipes=[];score=0;state='ready';
+  el.textContent='Tap or press Space to flap';
+}
+function flap(){
+  if(state==='over')return;
+  if(state==='ready'){state='play';spawn(W+60);}
+  bird.vy=FLAP;
+}
+function spawn(x){
+  const top=60+Math.random()*(H-GAP-160);
+  pipes.push({x,top,passed:false});
+}
+document.addEventListener('keydown',e=>{
+  if(e.code==='Space'){e.preventDefault();state==='over'?reset():flap();}
+});
+cv.addEventListener('pointerdown',e=>{e.preventDefault();state==='over'?reset():flap();});
+document.getElementById('btn').onclick=reset;
+
+function update(){
+  if(state!=='play')return;
+  bird.vy+=GRAV;bird.y+=bird.vy;
+  if(pipes.length===0||pipes[pipes.length-1].x<W-SPACING)spawn(W+PIPE_W);
+  for(const p of pipes){
+    p.x-=SPEED;
+    if(!p.passed&&p.x+PIPE_W<BX-R){p.passed=true;score++;}
+    // collision (circle vs two rects, AABB approx with radius)
+    if(BX+R>p.x&&BX-R<p.x+PIPE_W&&(bird.y-R<p.top||bird.y+R>p.top+GAP))gameOver();
+  }
+  pipes=pipes.filter(p=>p.x>-PIPE_W);
+  if(bird.y+R>H||bird.y-R<0)gameOver();
+}
+function gameOver(){
+  state='over';
+  el.textContent='Game over · Score '+score+' · Tap to restart';
+}
+function draw(){
+  ctx.fillStyle='#0c0e13';ctx.fillRect(0,0,W,H);
+  // pipes (teal)
+  ctx.fillStyle='#5fd4c4';
+  for(const p of pipes){
+    ctx.fillRect(p.x,0,PIPE_W,p.top);
+    ctx.fillRect(p.x,p.top+GAP,PIPE_W,H-p.top-GAP);
+  }
+  // bird (amber)
+  ctx.fillStyle='#f4b942';
+  ctx.beginPath();ctx.arc(BX,bird.y,R,0,7);ctx.fill();
+  ctx.fillStyle='#0c0e13';
+  ctx.beginPath();ctx.arc(BX+4,bird.y-3,2.5,0,7);ctx.fill();
+  // score
+  ctx.fillStyle='#e8e4d8';ctx.font='300 40px Fraunces,serif';ctx.textAlign='center';
+  ctx.fillText(score,W/2,60);
+  if(state==='ready'){
+    ctx.font='12px "IBM Plex Mono",monospace';ctx.fillStyle='#6b7183';
+    ctx.fillText('TAP / SPACE TO START',W/2,H/2+60);
+  }
+  if(state==='over'){
+    ctx.fillStyle='rgba(12,14,19,.7)';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#e8e4d8';ctx.font='300 34px Fraunces,serif';
+    ctx.fillText('Game over',W/2,H/2-10);
+    ctx.font='12px "IBM Plex Mono",monospace';ctx.fillStyle='#6b7183';
+    ctx.fillText('TAP OR SPACE TO RESTART',W/2,H/2+24);
+  }
+}
+function loop(){update();draw();requestAnimationFrame(loop);}
+reset();requestAnimationFrame(loop);
+</script>
+</body>
+</html>

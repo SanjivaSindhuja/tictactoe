@@ -1,0 +1,66 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reaction Test — Midnight Arcade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0e13;--panel:#12151d;--line:#232837;--ink:#e8e4d8;--dim:#6b7183;--x:#f4b942;--o:#5fd4c4}
+*{box-sizing:border-box;margin:0}
+body{min-height:100vh;background:var(--bg);color:var(--ink);font-family:'IBM Plex Mono',monospace;display:flex;flex-direction:column;align-items:center;padding:16px;
+background-image:radial-gradient(600px 400px at 15% 0%,rgba(244,185,66,.06),transparent),radial-gradient(600px 400px at 85% 100%,rgba(95,212,196,.06),transparent)}
+a.back{align-self:flex-start;color:var(--dim);text-decoration:none;font-size:12px;text-transform:uppercase;letter-spacing:.12em}
+a.back:hover{color:var(--ink)}
+h1{font-family:'Fraunces',serif;font-weight:300;font-size:2.2rem;margin:8px 0 14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.5);padding:18px;width:min(480px,100%)}
+#panel{height:260px;border-radius:12px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;user-select:none;padding:16px;font-size:15px;background:#0a0c10;transition:background .15s}
+#panel.wait{background:#1a1408;color:var(--x)}
+#panel.go{background:var(--o);color:#0c0e13}
+.stats{display:flex;gap:24px;margin-top:14px;flex-wrap:wrap}
+.label{font-size:11px;text-transform:uppercase;letter-spacing:.15em;color:var(--dim)}
+.val{font-size:1.3rem}
+button{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:.1em;cursor:pointer;margin-top:14px}
+button:hover{border-color:var(--o)}
+</style>
+<a class="back" href="index.html">← Arcade</a>
+<h1>Reaction Test</h1>
+<div class="card">
+  <div id="panel">Click to start — click again when the panel turns teal. Best of 5.</div>
+  <div class="stats">
+    <div><div class="label">Round</div><div class="val" id="round">–</div></div>
+    <div><div class="label">Last</div><div class="val" id="last">–</div></div>
+    <div><div class="label">Average</div><div class="val" id="avg">–</div></div>
+    <div><div class="label">Best ever</div><div class="val" id="best">–</div></div>
+  </div>
+  <button id="reset">Reset</button>
+</div>
+<script>
+const panel=document.getElementById('panel');
+let state='idle',t0,timer,times=[];
+const $=id=>document.getElementById(id);
+const best=()=>localStorage.getItem('reaction-best');
+function showBest(){$('best').textContent=best()?best()+' ms':'–';}
+function arm(){state='wait';panel.className='wait';panel.textContent='Wait for teal…';
+ timer=setTimeout(()=>{state='go';panel.className='go';panel.textContent='CLICK!';t0=performance.now();},1200+Math.random()*2500);}
+panel.addEventListener('pointerdown',()=>{
+ if(state==='idle'){times=[];update();arm();}
+ else if(state==='wait'){clearTimeout(timer);state='idle';panel.className='';panel.textContent='Too early! Click to try that round again.';}
+ else if(state==='go'){
+  const ms=Math.round(performance.now()-t0);times.push(ms);
+  $('last').textContent=ms+' ms';
+  if(!best()||ms<+best())localStorage.setItem('reaction-best',ms);
+  showBest();update();
+  if(times.length>=5){state='idle';panel.className='';
+   const avg=Math.round(times.reduce((a,b)=>a+b)/5);$('avg').textContent=avg+' ms';
+   panel.textContent=`Done — average ${avg} ms. Click to go again.`;times=[];}
+  else{state='between';panel.className='';panel.textContent=`${ms} ms — click for round ${times.length+1}`;}
+ }
+ else if(state==='between'){arm();}
+});
+function update(){$('round').textContent=times.length?times.length+'/5':'–';
+ if(!times.length){$('avg').textContent='–';}}
+$('reset').addEventListener('click',()=>{clearTimeout(timer);state='idle';times=[];panel.className='';
+ panel.textContent='Click to start — click again when the panel turns teal. Best of 5.';
+ $('last').textContent='–';$('avg').textContent='–';update();});
+showBest();
+</script>

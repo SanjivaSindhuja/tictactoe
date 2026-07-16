@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0e13;--panel:#12151d;--line:#232837;--ink:#e8e4d8;--dim:#6b7183;--x:#f4b942;--o:#5fd4c4}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;background:var(--bg) ;color:var(--ink);
+  background-image:radial-gradient(600px 400px at 15% 10%,rgba(244,185,66,.07),transparent),
+    radial-gradient(600px 400px at 85% 90%,rgba(95,212,196,.07),transparent);
+  font-family:'IBM Plex Mono',monospace;
+  display:flex;flex-direction:column;align-items:center;padding:24px;
+}
+.back{position:absolute;top:20px;left:24px;color:var(--dim);text-decoration:none;font-size:12px;text-transform:uppercase;letter-spacing:.12em}
+.back:hover{color:var(--ink)}
+h1{font-family:'Fraunces',serif;font-weight:300;font-size:42px;margin:48px 0 8px}
+.status{font-size:12px;text-transform:uppercase;letter-spacing:.18em;color:var(--dim);margin-bottom:20px;min-height:1.2em}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:28px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.board{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.pad{width:min(34vw,140px);height:min(34vw,140px);border-radius:16px;border:1px solid var(--line);cursor:pointer;opacity:.55;transition:opacity .15s,box-shadow .15s,transform .1s}
+.pad:active{transform:scale(.97)}
+.pad.lit{opacity:1}
+.pad[data-i="0"]{background:#3d2f10}.pad[data-i="0"].lit{background:var(--x);box-shadow:0 0 34px rgba(244,185,66,.7)}
+.pad[data-i="1"]{background:#173832}.pad[data-i="1"].lit{background:var(--o);box-shadow:0 0 34px rgba(95,212,196,.7)}
+.pad[data-i="2"]{background:#3a382f}.pad[data-i="2"].lit{background:var(--ink);box-shadow:0 0 34px rgba(232,228,216,.6)}
+.pad[data-i="3"]{background:#22242c}.pad[data-i="3"].lit{background:var(--dim);box-shadow:0 0 34px rgba(107,113,131,.8)}
+.bar{display:flex;gap:16px;align-items:center;justify-content:center;margin-top:22px}
+button{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:9px 22px;font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:.14em;cursor:pointer}
+button:hover{border-color:var(--dim)}
+.best{font-size:12px;text-transform:uppercase;letter-spacing:.18em;color:var(--dim)}
+.best b{color:var(--x);font-weight:500}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">&larr; Arcade</a>
+<h1>Simon</h1>
+<div class="status" id="status">Press start</div>
+<div class="card">
+  <div class="board" id="board">
+    <div class="pad" data-i="0"></div>
+    <div class="pad" data-i="1"></div>
+    <div class="pad" data-i="2"></div>
+    <div class="pad" data-i="3"></div>
+  </div>
+  <div class="bar">
+    <button id="start">Start</button>
+    <span class="best">Best <b id="best">0</b></span>
+  </div>
+</div>
+<script>
+const pads=[...document.querySelectorAll('.pad')];
+const statusEl=document.getElementById('status');
+const bestEl=document.getElementById('best');
+const freqs=[329.63,392,261.63,523.25];
+let ctx,seq=[],pos=0,accepting=false,best=+(localStorage.getItem('simonBest')||0);
+bestEl.textContent=best;
+
+function tone(i,dur=0.32){
+  ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();
+  const o=ctx.createOscillator(),g=ctx.createGain();
+  o.type='sine';o.frequency.value=freqs[i];
+  g.gain.setValueAtTime(0.25,ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+  o.connect(g).connect(ctx.destination);
+  o.start();o.stop(ctx.currentTime+dur);
+}
+function flash(i,ms=350){
+  pads[i].classList.add('lit');tone(i);
+  setTimeout(()=>pads[i].classList.remove('lit'),ms);
+}
+async function playSeq(){
+  accepting=false;
+  statusEl.textContent='Watch — round '+seq.length;
+  await new Promise(r=>setTimeout(r,600));
+  for(const i of seq){flash(i);await new Promise(r=>setTimeout(r,550));}
+  pos=0;accepting=true;
+  statusEl.textContent='Your turn';
+}
+function next(){seq.push(Math.floor(Math.random()*4));playSeq();}
+function gameOver(){
+  accepting=false;
+  const streak=seq.length-1;
+  if(streak>best){best=streak;localStorage.setItem('simonBest',best);bestEl.textContent=best;}
+  statusEl.textContent='Wrong! Streak '+streak+' — press start';
+  // buzz
+  ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();
+  const o=ctx.createOscillator(),g=ctx.createGain();
+  o.type='sawtooth';o.frequency.value=90;
+  g.gain.setValueAtTime(0.2,ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.5);
+  o.connect(g).connect(ctx.destination);o.start();o.stop(ctx.currentTime+0.5);
+}
+pads.forEach((p,i)=>p.addEventListener('pointerdown',()=>{
+  if(!accepting)return;
+  flash(i,220);
+  if(i!==seq[pos]){gameOver();return;}
+  pos++;
+  if(pos===seq.length){accepting=false;setTimeout(next,700);}
+}));
+document.getElementById('start').addEventListener('click',()=>{seq=[];next();});
+</script>
+</body>
+</html>

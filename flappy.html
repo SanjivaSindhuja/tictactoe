@@ -38,7 +38,7 @@ button:hover{border-color:var(--x)}
 <button id="btn">Restart</button>
 <script>
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
-const W=420,H=520,BX=100,R=12,GRAV=.38,FLAP=-6.8,PIPE_W=56,GAP=140,SPEED=2.4,SPACING=210;
+const W=420,H=520,BX=100,R=12,GRAV=.32,FLAP=-6.2,PIPE_W=56,GAP=155,SPEED=2,SPACING=210;
 let bird,pipes,score,state; // ready|play|over
 const el=document.getElementById('status');
 
@@ -106,7 +106,7 @@ function draw(){
     ctx.fillText('TAP OR SPACE TO RESTART',W/2,H/2+24);
   }
 }
-function loop(){update();draw();requestAnimationFrame(loop);}
+const STEP=1000/60;let _p,_a=0;function loop(ts){if(_p===undefined)_p=ts;_a+=Math.min(ts-_p,250);_p=ts;while(_a>=STEP){update();_a-=STEP;}draw();requestAnimationFrame(loop);}
 reset();requestAnimationFrame(loop);
 </script>
 </body>

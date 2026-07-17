@@ -111,7 +111,7 @@ function draw(){
     ctx.fillText(state==='win'?'You win!':'Game over',W/2,H/2);
   }
 }
-function loop(){update();draw();requestAnimationFrame(loop);}
+const STEP=1000/60;let _p,_a=0;function loop(ts){if(_p===undefined)_p=ts;_a+=Math.min(ts-_p,250);_p=ts;while(_a>=STEP){update();_a-=STEP;}draw();requestAnimationFrame(loop);}
 reset();requestAnimationFrame(loop);
 </script>
 </body>
